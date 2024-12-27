@@ -1,10 +1,10 @@
-# MuteBardsImproved
+# Mute Bards Improved
 
 ## Description
 
 Based on "Mute Bards 2" by *MadDachshund*.<br>
 
-This addon is for muting the annoying bards (ღ˘⌣˘ღ) in the given zones (cities, or specific parts of the cities) while still keeping the Tales of Tribute game sound effects on.<br>
+This addon is for muting the annoying bards in the given zones (cities, or specific parts of the cities) while still keeping the Tales of Tribute game sound effects on. (ღ˘⌣˘ღ)<br>
 
 Addon comes with a preset list of zones with bards up till latest zone West Weald. \(Please see the list below)<br>
 
@@ -15,6 +15,10 @@ Missing a zone or wanna hear "Red Diamond" again? type /mbi to add your current 
 You can also set the default sound effects volume level when it's unmuted.<br>
 
 Lastly, since the zones keep changing while you are moving around the logs for muted/unmuted might clutter the chat. You can enable or disable them from the menu as well.
+
+## Dependencies
+
+LibAddonMenu-2.0
 
 ## Preset Zones
 
