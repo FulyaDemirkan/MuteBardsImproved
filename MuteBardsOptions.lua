@@ -65,13 +65,13 @@ function MBI:InitSettingsPanel(savedVariables)
     feedback = "https://www.esoui.com/downloads/info3199-MBI.html#comments",
     slashCommand = "/mbi",
     registerForRefresh = true,
-    registerForDefaults = true
+    registerForDefaults = false
   }
 
   local optionsTable = {
     {
       type = "header",
-      name = "mutedZones",
+      name = "Zone Settings",
       width = "full"
     },
     {
@@ -165,7 +165,7 @@ function MBI:InitSettingsPanel(savedVariables)
     },
     {
       type = "description",
-      text = "Since mutedZones and submutedZones keep changing while you are moving around, it may cause too many logs getting printed in the chat.",
+      text = "Since zones keep changing while you are moving around, it may cause too many logs getting printed in the chat.",
       width = "full"
     },
     {
