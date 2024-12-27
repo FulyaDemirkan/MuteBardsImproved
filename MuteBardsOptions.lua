@@ -61,8 +61,8 @@ function MBI:InitSettingsPanel(savedVariables)
     displayName = panelName,
     author = "@psi-pisi",
     version = self.version,
-    website = "https://www.esoui.com/downloads/info3199-MBI.html",
-    feedback = "https://www.esoui.com/downloads/info3199-MBI.html#comments",
+    website = "https://www.esoui.com/downloads/info4016-MuteBardsImproved.html",
+    feedback = "https://www.esoui.com/downloads/info4016-MuteBardsImproved.html#comments",
     slashCommand = "/mbi",
     registerForRefresh = true,
     registerForDefaults = false
