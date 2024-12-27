@@ -2,9 +2,9 @@
 
 ## Description
 
-Based on Mute Bards 2 by MadDachshund.<br>
+Based on "Mute Bards 2" by *MadDachshund*.<br>
 
-This addon is for muting the annoying bards in the given zones (like cities, or specific parts of the cities) while still keeping the Tales of Tribute game sound effects on.<br>
+This addon is for muting the annoying bards (ღ˘⌣˘ღ) in the given zones (cities, or specific parts of the cities) while still keeping the Tales of Tribute game sound effects on.<br>
 
 Addon comes with a preset list of zones with bards up till latest zone West Weald. \(Please see the list below)<br>
 
