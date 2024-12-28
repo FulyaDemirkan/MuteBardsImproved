@@ -197,7 +197,7 @@ end
 
 function MBI.OnAreaChange()
   MBI:GetZoneName()
-  d('currentZone ' .. currentZone);
+  --d('currentZone ' .. currentZone);
 
   if (MBI.AccountDefaults ~= nil and MBI.SavedVariables ~= nil) then
     MBI.AccountDefaults.currentZone = currentZone;
