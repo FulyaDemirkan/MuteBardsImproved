@@ -1,8 +1,8 @@
 ## Title: Mute Bards Improved
 ## Description: Mute the annoying bards in the given subzones (like cities) while still keeping the Tales of Tribute sound effects on. Type /mbi to open the settings, where you can add or remove zones. 
-## APIVersion: v101044
+## APIVersion: 101044
 ## SavedVariables: MuteBardsImproved_Settings
-## DependsOn: LibAddonMenu-2.0
+## DependsOn: LibAddonMenu-2.0>=37
 ## Author: @psi-pisi
 ## Version: 1.0.0
 ## AddOnVersion: 1.0
