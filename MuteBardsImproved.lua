@@ -100,7 +100,7 @@ end
 
 function MBI:TogglePrintLogs(value)
   MBI.AccountDefaults.printLogs = value
-  MBI.SavedVariables.printLogs = MBI.AccountDefaults.printLogsrx
+  MBI.SavedVariables.printLogs = MBI.AccountDefaults.printLogs
 end
 
 function MBI:ChangeVolume(value)
