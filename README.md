@@ -12,9 +12,12 @@ Unfortunately due to how some zones are defined in the game, some cities have mu
 
 Missing a zone or wanna hear "Red Diamond" again? type /mbi to add your current zone or select a zone from the list to remove one.<br>
 
-You can also set the default sound effects volume level when it's unmuted.<br>
+You can also set the default sound effects sfxVolume level when it's unmuted.<br>
 
 Lastly, since the zones keep changing while you are moving around the logs for muted/unmuted might clutter the chat. You can enable or disable them from the menu as well.
+
+** New Feature:
+Now you can mute the main zone music! Why? Because I hate Elsweyr soundtrack :D
 
 ## Dependencies
 
