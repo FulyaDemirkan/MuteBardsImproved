@@ -4,9 +4,16 @@ MBI = {
   author = "psi-pisi"
 };
 
-local currentZone;
+VOLUME_TYPES = {
+  BARD = "bard";
+  MUSIC = "music";
+}
 
-local defaultZones = {
+local currentActiveZone;
+
+local currentMainZone;
+
+local defaultBardZones = {
   "Mistral",                          -- Zone: Khenarthi's Roost    Location: Mistral               Bard: Eye-Fancy
   "Skywatch Wayshrine",               -- Zone: Auridon              Location: Skywatch              Bard: Annagail
   "Skywatch",                         -- Zone: Auridon              Location: Skywatch              Bard: Lorais
@@ -51,21 +58,40 @@ local defaultZones = {
 }
 
 MBI.AccountDefaults = {
-  currentZone = '',
-  volume = 70,
+  currentActiveZone = '',
+  currentMainZone = '',
+  sfxVolume = 70,
+  musicVolume = 70,
   printLogs = true,
-  mutedZones = {}
+  mutedBardZones = {},
+  mutedMusicZones = {}
 };
 
-local isMuted = false
+local isBardMuted = false
+local isMusicMuted = false
 local next = next
 
-local function getMutedZones(accountDefaults)
-  return accountDefaults and accountDefaults.mutedZones;
+function table.removekey(table, key)
+    local element = table[key]
+    table[key] = nil
+    return element
 end
 
-local function setSfxVolume(volume)
-  SetSetting(SETTING_TYPE_AUDIO, AUDIO_SETTING_SFX_VOLUME, volume);
+local function getMutedBardZones(accountDefaults)
+  return accountDefaults and accountDefaults.mutedBardZones;
+end
+
+local function getMutedMusicZones(accountDefaults)
+  return accountDefaults and accountDefaults.mutedMusicZones;
+end
+
+local function setVolume(volume, type)
+  if (type == VOLUME_TYPES.BARD) then
+    SetSetting(SETTING_TYPE_AUDIO, AUDIO_SETTING_SFX_VOLUME, volume);
+  end
+  if (type == VOLUME_TYPES.MUSIC) then
+    SetSetting(SETTING_TYPE_AUDIO, AUDIO_SETTING_MUSIC_VOLUME, volume);
+  end
 end
 
 local function OnAddOnLoaded(addOnName)
@@ -78,19 +104,53 @@ function MBI:Initialize()
   --create the default table
   --create the saved variable access object here and assign it to savedVars
   MBI.SavedVariables = ZO_SavedVars:NewAccountWide("MuteBardsImproved_Settings", MBI.version, nil, MBI.AccountDefaults, GetWorldName());
-  MBI.AccountDefaults.currentZone = MBI.SavedVariables.currentZone
-  MBI.AccountDefaults.volume = MBI.SavedVariables.volume
-  MBI.AccountDefaults.printLogs = MBI.SavedVariables.printLogs
 
-  if next(MBI.SavedVariables.mutedZones) == nil then
-    MBI.SavedVariables.mutedZones = defaultZones
-    MBI.AccountDefaults.mutedZones = defaultZones
-  else
-    for index, data in pairs(MBI.SavedVariables.mutedZones) do
-      MBI.AccountDefaults.mutedZones[index] = data
+  -- if the addon is older version then need to create new variables and remove the old ones
+  if MBI.SavedVariables.currentZone ~= nil then
+    local zoneIndex = GetCurrentMapZoneIndex()
+	  local mainZone = zo_strformat(SI_UNIT_NAME, GetZoneNameByIndex(zoneIndex))
+
+    MBI.AccountDefaults.currentActiveZone = MBI.SavedVariables.currentZone
+    MBI.AccountDefaults.currentMainZone = mainZone
+    MBI.AccountDefaults.sfxVolume = MBI.SavedVariables.volume
+    MBI.AccountDefaults.musicVolume = MBI.SavedVariables.volume
+    MBI.AccountDefaults.printLogs = MBI.SavedVariables.printLogs
+
+    if next(MBI.SavedVariables.mutedZones) == nil then
+      MBI.SavedVariables.mutedBardZones = defaultBardZones
+      MBI.AccountDefaults.mutedBardZones = defaultBardZones
+    else
+      for index, data in pairs(MBI.SavedVariables.mutedZones) do
+        MBI.AccountDefaults.mutedBardZones[index] = data
+      end
     end
+    table.removekey(MBI.SavedVariables, "currentZone")
+    table.removekey(MBI.SavedVariables, "volume")
+    table.removekey(MBI.SavedVariables, "mutedZones")
   end
 
+  if MBI.SavedVariables.currentActiveZone ~= nil then
+    MBI.AccountDefaults.currentActiveZone = MBI.SavedVariables.currentActiveZone
+    MBI.AccountDefaults.currentMainZone = MBI.SavedVariables.currentMainZone
+    MBI.AccountDefaults.sfxVolume = MBI.SavedVariables.sfxVolume
+    MBI.AccountDefaults.musicVolume = MBI.SavedVariables.musicVolume
+    MBI.AccountDefaults.printLogs = MBI.SavedVariables.printLogs
+
+    if next(MBI.SavedVariables.mutedBardZones) == nil then
+      MBI.SavedVariables.mutedBardZones = defaultBardZones
+      MBI.AccountDefaults.mutedBardZones = defaultBardZones
+    else
+      for index, data in pairs(MBI.SavedVariables.mutedBardZones) do
+        MBI.AccountDefaults.mutedBardZones[index] = data
+      end
+    end
+
+    if next(MBI.SavedVariables.mutedMusicZones) ~= nil then
+      for index, data in pairs(MBI.SavedVariables.mutedMusicZones) do
+        MBI.AccountDefaults.mutedMusicZones[index] = data
+      end
+    end
+  end
   --Unregister Loaded Callback
   EVENT_MANAGER:UnregisterForEvent(MBI.name, EVENT_ADD_ON_LOADED);
 
@@ -103,32 +163,74 @@ function MBI:TogglePrintLogs(value)
   MBI.SavedVariables.printLogs = MBI.AccountDefaults.printLogs
 end
 
-function MBI:ChangeVolume(value)
-  MBI.AccountDefaults.volume = value
-  MBI.SavedVariables.volume = MBI.AccountDefaults.volume
+function MBI:ChangeVolume(value, type)
+  if(type == VOLUME_TYPES.BARD) then
+    MBI.AccountDefaults.sfxVolume = value
+    MBI.SavedVariables.sfxVolume = MBI.AccountDefaults.sfxVolume
+  else
+    MBI.AccountDefaults.musicVolume = value
+    MBI.SavedVariables.musicVolume = MBI.AccountDefaults.musicVolume
+  end
 end
 
-function MBI:AddZone(zoneName, cb)
-  if (self:ContainsZone(zoneName)) then
-    d(MBI.name .. '> Zone "' .. zoneName .. '" is already in the list.');
+function MBI:AddZone(zoneName, type, cb)
+  local result
+  if (type == VOLUME_TYPES.BARD) then
+    result = self:ContainsZone(zoneName, nil)
+  else
+    result = self:ContainsZone(nil, zoneName)
+  end
+
+  if (result ~= nil and result[type] == true) then
+    d(MBI.name .. '> Zone "' .. zoneName .. '" is already in the muted ' .. type .. ' zones list.');
     return;
   end
-    d(MBI.name .. '> Adding zone "' .. zoneName .. '" to the list.');
-    table.insert(MBI.AccountDefaults.mutedZones, zoneName);
-    MBI.SavedVariables.mutedZones = MBI.AccountDefaults.mutedZones
+
+  if (type == VOLUME_TYPES.BARD) then
+    d(MBI.name .. '> Adding zone "' .. zoneName .. '" to the muted ' .. type .. ' zones list.');
+    table.insert(MBI.AccountDefaults.mutedBardZones, zoneName);
+    MBI.SavedVariables.mutedBardZones = MBI.AccountDefaults.mutedBardZones
+  else
+    d(MBI.name .. '> Adding zone "' .. zoneName .. '" to the muted ' .. type .. ' zones list.');
+    table.insert(MBI.AccountDefaults.mutedMusicZones, zoneName);
+    MBI.SavedVariables.mutedMusicZones = MBI.AccountDefaults.mutedMusicZones
+  end
 
   if (cb ~= nil) then
     cb();
   end
 end
 
-function MBI:RemoveZone(zoneName, cb)
-  if (self:ContainsZone(zoneName)) then
-    for i, v in pairs(getMutedZones(MBI.AccountDefaults)) do
+function MBI:RemoveZone(zoneName, type, cb)
+  local result
+  if (type == VOLUME_TYPES.BARD) then
+    result = self:ContainsZone(zoneName, nil)
+  else
+    result = self:ContainsZone(nil, zoneName)
+  end
+
+  if (result == nil or result[type] == false) then
+    return
+  end
+
+  if (type == VOLUME_TYPES.BARD) then
+    for i, v in pairs(getMutedBardZones(MBI.AccountDefaults)) do
       if (v:lower() == zoneName:lower()) then
-        table.remove(MBI.AccountDefaults.mutedZones, i)
-        MBI.SavedVariables.mutedZones = MBI.AccountDefaults.mutedZones
-        d(MBI.name .. '> Zone "' .. zoneName .. '" is removed from the list.');
+        table.remove(MBI.AccountDefaults.mutedBardZones, i)
+        MBI.SavedVariables.mutedBardZones = MBI.AccountDefaults.mutedBardZones
+        d(MBI.name .. '> Zone "' .. zoneName .. '" is removed from the muted ' .. type .. ' zones list.');
+        if (cb ~= nil) then
+          cb();
+        end
+        return
+      end
+    end
+  else
+    for i, v in pairs(getMutedMusicZones(MBI.AccountDefaults)) do
+      if (v:lower() == zoneName:lower()) then
+        table.remove(MBI.AccountDefaults.mutedMusicZones, i)
+        MBI.SavedVariables.mutedMusicZones = MBI.AccountDefaults.mutedMusicZones
+        d(MBI.name .. '> Zone "' .. zoneName .. '" is removed from the muted ' .. type .. ' zones list.');
         if (cb ~= nil) then
           cb();
         end
@@ -138,52 +240,75 @@ function MBI:RemoveZone(zoneName, cb)
   end
 end
 
-function MBI:ContainsZone(zoneName)
-  if (getMutedZones(MBI.AccountDefaults) == nil) then    
-    return false;
-  end
-  for i, v in ipairs(getMutedZones(MBI.AccountDefaults)) do
-    if (v ~= nil and zoneName ~= nil) then -- protects against indexing nil on next line  
-      if (v:lower() == zoneName:lower()) then
-        return true;
+function MBI:ContainsZone(activeZone, mainZone)
+  local result = {
+    bard = false,
+    music = false
+  };
+
+  if(getMutedBardZones(MBI.AccountDefaults) ~= nil) then
+    for i, v in ipairs(getMutedBardZones(MBI.AccountDefaults)) do
+      if (v ~= nil and activeZone ~= nil) then -- protects against indexing nil on next line  
+        if (v:lower() == activeZone:lower()) then
+          result.bard = true
+        end
       end
     end
   end
-  return false;
+
+  if(getMutedMusicZones(MBI.AccountDefaults) ~= nil) then
+    for i, v in ipairs(getMutedMusicZones(MBI.AccountDefaults)) do
+      if (v ~= nil and mainZone ~= nil) then -- protects against indexing nil on next line  
+        if (v:lower() == mainZone:lower()) then
+          result.music = true
+        end
+      end
+    end
+  end
+  return result;
 end
 
-function MBI:GetZoneName()
+function MBI:GetZoneNames()
   local mapName = GetMapName()
 	local playerActiveSubzoneName = ZO_CachedStrFormat(SI_ZONE_NAME, GetPlayerActiveSubzoneName())
 	local zoneIndex = GetCurrentMapZoneIndex()
 	local zoneName = zo_strformat(SI_UNIT_NAME, GetZoneNameByIndex(zoneIndex))
+  currentMainZone = zoneName
 
   --d('playerActiveSubzoneName: ' ..tostring(playerActiveSubzoneName))
   --d('zoneName: ' ..tostring(zoneName))
-  --d('mapName: ' ..tostring(zo_strformat(SI_WINDOW_TITLE_WORLD_MAP, mapName)))
+  --d('currentMainZone: ' .. currentMainZone)
 
 	if (playerActiveSubzoneName ~= nil and playerActiveSubzoneName ~= '') then
-		currentZone = playerActiveSubzoneName
+		currentActiveZone = playerActiveSubzoneName
   elseif (mapName ~= nil and mapName ~= '') then
-		currentZone = mapName
+		currentActiveZone = mapName
 	else
-		currentZone = zoneName
+		currentActiveZone = zoneName
 	end
 end
 
-function MBI:PrintLog(event, volume)
+function MBI:PrintLog(event, type, volume)
   if MBI.AccountDefaults.printLogs then
-    if event == "zoneChange" then
-      if volume == 0 then
-        d(MBI.name .. '> There is a bard around, sound effects are muted.')
-      else
-        d(MBI.name .. '> No bard is around now, sound effects are unmuted.')
+    if (type == VOLUME_TYPES.BARD) then
+      if event == "zoneChange" then
+        if volume == 0 then
+          d(MBI.name .. '> There is a bard around, sound effects are muted.')
+        else
+          d(MBI.name .. '> No bard is around now, sound effects are unmuted.')
+        end
+      elseif event == "game" then
+        if volume == 0 then
+          d(MBI.name .. '> Game has ended, sound effects are muted.')
+        else
+          d(MBI.name .. '> Game has started, sound effects are unmuted.')
+        end
       end
-    elseif event == "game" then
+    else
       if volume == 0 then
-        d(MBI.name .. '> Game has ended, sound effects are muted.')
+        d(MBI.name .. '> Game music is muted.')
       else
-        d(MBI.name .. '> Game has started, sound effects are unmuted.')
+        d(MBI.name .. '> Game music is unmuted.')
       end
     end
   end
@@ -191,44 +316,60 @@ end
 
 function MBI.InCombatState(inCombat)
   if inCombat then
-    setSfxVolume(MBI.AccountDefaults.volume);
+    setVolume(MBI.AccountDefaults.sfxVolume, VOLUME_TYPES.BARD);
+    setVolume(MBI.AccountDefaults.musicVolume, VOLUME_TYPES.MUSIC);
   end
 end
 
 function MBI.OnAreaChange()
-  MBI:GetZoneName()
-  --d('currentZone ' .. currentZone);
+  MBI:GetZoneNames()
+  --d('currentActiveZone ' .. currentActiveZone);
 
   if (MBI.AccountDefaults ~= nil and MBI.SavedVariables ~= nil) then
-    MBI.AccountDefaults.currentZone = currentZone;
-    MBI.SavedVariables.currentZone = MBI.AccountDefaults.currentZone
+    MBI.AccountDefaults.currentActiveZone = currentActiveZone;
+    MBI.SavedVariables.currentActiveZone = MBI.AccountDefaults.currentActiveZone
+
+    MBI.AccountDefaults.currentMainZone = currentMainZone;
+    MBI.SavedVariables.currentMainZone = MBI.AccountDefaults.currentMainZone
+
+    --d('currentActiveZone: ' ..tostring(currentActiveZone))
+    --d('MBI.SavedVariables.currentActiveZone: ' ..tostring(MBI.SavedVariables.currentActiveZone))
+    local result = MBI:ContainsZone(currentActiveZone, currentMainZone)
+
+    if (result ~= nil and result.bard == true) then
+      MBI:PrintLog("zoneChange", VOLUME_TYPES.BARD, 0)
+      setVolume(0, VOLUME_TYPES.BARD);
+      isBardMuted = true
+    elseif isBardMuted then
+      MBI:PrintLog("zoneChange", VOLUME_TYPES.BARD, MBI.AccountDefaults.sfxVolume)
+      setVolume(MBI.AccountDefaults.sfxVolume, VOLUME_TYPES.BARD);
+      isBardMuted = false
+    end
     
-    --d('currentZone: ' ..tostring(currentZone))
-    --d('MBI.SavedVariables.currentZone: ' ..tostring(MBI.SavedVariables.currentZone))
-    if (MBI:ContainsZone(currentZone)) then
-      MBI:PrintLog("zoneChange", 0)
-      setSfxVolume(0);
-      isMuted = true
-    elseif isMuted then
-      MBI:PrintLog("zoneChange", MBI.AccountDefaults.volume)
-      setSfxVolume(MBI.AccountDefaults.volume);
-      isMuted = false
+    if (result ~= nil and result.music == true) then
+      MBI:PrintLog("zoneChange", VOLUME_TYPES.MUSIC, 0)
+      setVolume(0, VOLUME_TYPES.MUSIC);
+      isMusicMuted = true
+    elseif isMusicMuted then
+      MBI:PrintLog("zoneChange", VOLUME_TYPES.MUSIC, MBI.AccountDefaults.musicVolume)
+      setVolume(MBI.AccountDefaults.musicVolume, VOLUME_TYPES.MUSIC);
+      isMusicMuted = false
     end
   end
 end
 
 function MBI.OnGameStateChange(_, flowState)
-  if (MBI:ContainsZone(currentZone)) then
+  if (MBI:ContainsZone(currentActiveZone, nil)) then
     if(flowState == 0) then
-      MBI:PrintLog("game", 0)
-      setSfxVolume(0);
-      isMuted = true
+      MBI:PrintLog("game", VOLUME_TYPES.BARD, 0)
+      setVolume(0, VOLUME_TYPES.BARD);
+      isBardMuted = true
     else
       if(flowState == 1) then
-        MBI:PrintLog("game", MBI.AccountDefaults.volume)
+        MBI:PrintLog("game", VOLUME_TYPES.BARD, MBI.AccountDefaults.sfxVolume)
       end
-      setSfxVolume(MBI.AccountDefaults.volume);
-      isMuted = false
+      setVolume(MBI.AccountDefaults.sfxVolume, VOLUME_TYPES.BARD);
+      isBardMuted = false
     end
   end
 end
